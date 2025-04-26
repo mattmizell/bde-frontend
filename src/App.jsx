@@ -15,8 +15,8 @@ function App() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8010";
-        await fetch(`${API_BASE_URL}/start-process`, { method: "POST" })
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
 
         if (!response.ok) throw new Error(`Server error: ${response.status} ${response.statusText}`);
         return await response.json();
@@ -37,6 +37,7 @@ function App() {
     try {
       const data = await fetchWithRetry(`${API_BASE_URL}/start-process`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
       setProcessId(data.process_id);
@@ -52,7 +53,9 @@ function App() {
 
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/status/${processId}`);
+        const response = await fetch(`${API_BASE_URL}/status/${processId}`, {
+          credentials: "include",
+        });
         if (!response.ok) throw new Error("Status fetch failed");
 
         const status = await response.json();
