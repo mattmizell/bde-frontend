@@ -56,6 +56,15 @@ function App() {
         const response = await fetch(`${API_BASE_URL}/status/${processId}`, {
           credentials: "include",
         });
+
+        if (response.status === 404) {
+          // Assume process finished if backend shuts down
+          setLog("✅ Process finished. File should be available shortly.");
+          setIsLoading(false);
+          clearInterval(interval);
+          return;
+        }
+
         if (!response.ok) throw new Error("Status fetch failed");
 
         const status = await response.json();
