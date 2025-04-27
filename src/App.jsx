@@ -24,10 +24,10 @@ function App() {
             setLog(`✅ Completed: ${status.row_count} rows parsed.`);
             setIsLoading(false);
 
-            // Immediately auto-download parsed CSV
+            // Immediately download parsed CSV
             autoDownloadFile(status.output_file);
 
-            // Also auto-download failed CSV if it exists
+            // Also try to download failed CSV if exists
             const failedFilename = "failed_" + status.output_file.split("_")[1];
             autoDownloadFile(failedFilename);
 
@@ -38,7 +38,7 @@ function App() {
             clearInterval(interval);
           } else {
             setLog(
-              `📩 Emails Found: ${status.email_count} | 📨 Currently Processing: ${status.current_email} | ✅ Rows Parsed: ${status.row_count}`
+              `📩 Emails Found: ${status.email_count} | 📨 Processing: ${status.current_email} | ✅ Rows Parsed: ${status.row_count}`
             );
           }
         } catch (error) {
