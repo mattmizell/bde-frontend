@@ -5,7 +5,6 @@ const API_BASE_URL = "https://bde-project.onrender.com";
 function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [processId, setProcessId] = useState(null);
-  const [outputFile, setOutputFile] = useState(null);
   const [log, setLog] = useState("");
 
   useEffect(() => {
@@ -23,12 +22,16 @@ function App() {
 
           if (status.status === "done") {
             setLog(`✅ Completed: ${status.row_count} rows parsed.`);
-            setOutputFile(status.output_file);
             setIsLoading(false);
-            clearInterval(interval);
 
-            // Automatically trigger download
-            autoDownloadCSV(status.output_file);
+            // Immediately auto-download parsed CSV
+            autoDownloadFile(status.output_file);
+
+            // Also auto-download failed CSV if it exists
+            const failedFilename = "failed_" + status.output_file.split("_")[1];
+            autoDownloadFile(failedFilename);
+
+            clearInterval(interval);
           } else if (status.status === "error") {
             setLog(`❌ Error: ${status.error}`);
             setIsLoading(false);
@@ -76,7 +79,7 @@ function App() {
     try {
       setIsLoading(true);
       setLog("⏳ Starting to fetch emails...");
-      setOutputFile(null);
+      setProcessId(null);
 
       const response = await fetchWithRetry(`${API_BASE_URL}/start-process`, {
         method: "POST",
@@ -91,13 +94,13 @@ function App() {
     }
   };
 
-  const autoDownloadCSV = async (filename) => {
+  const autoDownloadFile = async (filename) => {
     try {
       const response = await fetch(`${API_BASE_URL}/download/${filename}`, {
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch CSV file");
+        throw new Error("Failed to fetch file");
       }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
