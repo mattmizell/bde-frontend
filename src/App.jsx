@@ -1,136 +1,143 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE_URL = "https://bde-project.onrender.com";
 
 function App() {
-  const [log, setLog] = useState("Ready to fetch emails...");
-  const [processId, setProcessId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [processId, setProcessId] = useState(null);
   const [outputFile, setOutputFile] = useState(null);
-
-  const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-        const response = await fetch(url, { ...options, signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        return await response.json();
-      } catch (error) {
-        if (i === retries - 1) throw error;
-        console.log(`Retrying fetch... Attempt ${i + 1}`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  };
-
-  const fetchEmails = async () => {
-    setLog("Starting email fetch process...");
-    setIsLoading(true);
-    setProgress(0);
-    setOutputFile(null);
-
-    try {
-      const data = await fetchWithRetry(`${API_BASE_URL}/start-process`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      setProcessId(data.process_id);
-    } catch (error) {
-      console.error("Fetch error:", error);
-      setLog(`Failed to start process: ${error.message}`);
-      setIsLoading(false);
-    }
-  };
+  const [log, setLog] = useState("");
 
   useEffect(() => {
-    if (!processId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/status/${processId}`, {
-          credentials: "include",
-        });
-
-        if (response.status === 404) {
-          // Assume process finished if backend shuts down
-          setLog("✅ Process finished. File should be available shortly.");
-          setIsLoading(false);
-          clearInterval(interval);
-          return;
-        }
-
-        if (!response.ok) throw new Error("Status fetch failed");
-
-        const status = await response.json();
-        if (status.status === "done") {
-          setLog(`✅ Completed: ${status.row_count} rows parsed.`);
-          setOutputFile(status.output_file);
-          setIsLoading(false);
-          clearInterval(interval);
-        } else if (status.status === "error") {
-          setLog(`❌ Error: ${status.error}`);
-          setIsLoading(false);
-          clearInterval(interval);
-        } else {
-          setLog(`⌛ Processing emails... (${status.current_email} of ${status.email_count})`);
-          if (status.email_count > 0) {
-            setProgress(Math.round((status.current_email / status.email_count) * 100));
+    let interval;
+    if (processId) {
+      interval = setInterval(async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/status/${processId}`, {
+            credentials: "include",
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch status");
           }
+          const status = await response.json();
+
+          if (status.status === "done") {
+            setLog(`✅ Completed: ${status.row_count} rows parsed.`);
+            setOutputFile(status.output_file);
+            setIsLoading(false);
+            clearInterval(interval);
+
+            // Automatically trigger download
+            autoDownloadCSV(status.output_file);
+          } else if (status.status === "error") {
+            setLog(`❌ Error: ${status.error}`);
+            setIsLoading(false);
+            clearInterval(interval);
+          } else {
+            setLog(
+              `📩 Emails Found: ${status.email_count} | 📨 Currently Processing: ${status.current_email} | ✅ Rows Parsed: ${status.row_count}`
+            );
+          }
+        } catch (error) {
+          console.error("Error checking status:", error);
+          setLog(`❌ Error checking status`);
+          setIsLoading(false);
+          clearInterval(interval);
         }
-      } catch (err) {
-        console.error("Status error:", err);
-        setLog(`❌ Status error: ${err.message}`);
-        setIsLoading(false);
-        clearInterval(interval);
-      }
-    }, 3000);
+      }, 3000);
+    }
 
     return () => clearInterval(interval);
   }, [processId]);
 
+  const fetchWithRetry = async (url, options = {}, retries = 3, delay = 2000) => {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        if (retries > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return fetchWithRetry(url, options, retries - 1, delay);
+        } else {
+          throw new Error(`Failed after ${retries} retries`);
+        }
+      }
+      return response;
+    } catch (error) {
+      if (retries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return fetchWithRetry(url, options, retries - 1, delay);
+      } else {
+        throw error;
+      }
+    }
+  };
+
+  const handleFetchEmails = async () => {
+    try {
+      setIsLoading(true);
+      setLog("⏳ Starting to fetch emails...");
+      setOutputFile(null);
+
+      const response = await fetchWithRetry(`${API_BASE_URL}/start-process`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await response.json();
+      setProcessId(data.process_id);
+    } catch (error) {
+      console.error("Error starting process:", error);
+      setLog(`❌ Error starting process`);
+      setIsLoading(false);
+    }
+  };
+
+  const autoDownloadCSV = async (filename) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/download/${filename}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch CSV file");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Auto download error:", error);
+    }
+  };
+
   return (
-    <main className="p-10 text-gray-800 font-sans">
-      <h1 className="text-4xl font-bold mb-4">Better Day Energy Parser</h1>
+    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+      <h1>BDE Email Parser</h1>
 
       <button
-        onClick={fetchEmails}
+        onClick={handleFetchEmails}
         disabled={isLoading}
-        className={`bg-white text-black border border-gray-400 px-6 py-3 rounded shadow hover:bg-gray-100 ${
-          isLoading ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#4CAF50",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: isLoading ? "not-allowed" : "pointer",
+          fontSize: "16px",
+        }}
       >
         {isLoading ? "Processing..." : "Fetch Emails"}
       </button>
 
-      <div className="mt-6 text-sm whitespace-pre-wrap">
-        {log}
-        {progress > 0 && progress < 100 && (
-          <div className="mt-2 w-full bg-gray-300 rounded-full h-4">
-            <div
-              className="bg-green-500 h-4 rounded-full"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        )}
+      <div style={{ marginTop: "20px" }}>
+        <h3>Status:</h3>
+        <p>{log}</p>
       </div>
-
-      {outputFile && (
-        <div className="mt-6">
-          <a
-            href={`${API_BASE_URL}/download/${outputFile}`}
-            className="text-blue-600 underline hover:text-blue-800"
-          >
-            📂 Download Output CSV
-          </a>
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
 
