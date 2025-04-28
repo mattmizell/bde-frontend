@@ -8,8 +8,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [outputFile, setOutputFile] = useState(null);
+  const [debugLogFile, setDebugLogFile] = useState(null); // Add state for debug log file
 
-  // Log API_BASE_URL for debugging
   console.log("API_BASE_URL:", API_BASE_URL);
 
   const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
@@ -37,9 +37,9 @@ function App() {
     setIsLoading(true);
     setProgress(0);
     setOutputFile(null);
+    setDebugLogFile(null); // Reset debug log file
 
     try {
-      // Wake up backend
       await fetch(`${API_BASE_URL}/keep-alive`);
       console.log("Sent keep-alive request");
       const data = await fetchWithRetry(`/start-process`, {
@@ -67,6 +67,7 @@ function App() {
         if (status.status === "done") {
           setLog(`✅ Completed: ${status.row_count} rows parsed.`);
           setOutputFile(status.output_file);
+          setDebugLogFile(status.debug_log); // Set debug log file from status
           setIsLoading(false);
           clearInterval(interval);
         } else if (status.status === "error") {
@@ -85,7 +86,7 @@ function App() {
         setIsLoading(false);
         clearInterval(interval);
       }
-    }, 5000); // Increased from 3000 to 5000
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [processId]);
@@ -123,6 +124,17 @@ function App() {
             className="text-blue-600 underline hover:text-blue-800"
           >
             📂 Download Output CSV
+          </a>
+        </div>
+      )}
+
+      {debugLogFile && (
+        <div className="mt-2">
+          <a
+            href={`${API_BASE_URL}/download/${debugLogFile}`}
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            📜 Download Debug Log
           </a>
         </div>
       )}
