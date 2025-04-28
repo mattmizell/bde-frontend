@@ -1,4 +1,4 @@
-// server.js
+// server.js (in project root)
 import express from 'express';
 import fetch from 'node-fetch';
 import path from 'path';
