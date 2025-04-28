@@ -83,7 +83,7 @@
         }
 
         .status-card h2 {
-            font-size: 20px;
+            font-size: 18px;
             color: #00e6ff;
             margin-bottom: 15px;
             font-weight: 500;
@@ -92,317 +92,159 @@
         .status-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             margin-bottom: 10px;
             font-size: 16px;
         }
 
-        .status-item span {
+        .status-item span:first-child {
             color: #b0b0b0;
         }
 
-        .status-item .value {
+        .status-item span:last-child {
             color: #e0e0e0;
             font-weight: 500;
         }
 
         .progress-bar {
+            width: 100%;
+            height: 10px;
             background: #444;
             border-radius: 5px;
-            height: 10px;
             overflow: hidden;
             margin-top: 10px;
         }
 
         .progress {
-            background: linear-gradient(90deg, #00e6ff, #00b4d8);
             height: 100%;
-            width: 0;
+            background: linear-gradient(90deg, #00e6ff, #00b4d8);
+            width: 0%;
             transition: width 0.5s ease;
         }
 
-        .token-card {
-            background: #333;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #444;
-            transition: all 0.3s ease;
-        }
-
-        .token-card.warning {
-            border-color: #ff4d4d;
-            box-shadow: 0 0 15px rgba(255, 77, 77, 0.2);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
-            50% { box-shadow: 0 0 25px rgba(255, 77, 77, 0.4); }
-            100% { box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
-        }
-
-        .token-card h2 {
-            font-size: 20px;
-            color: #00e6ff;
-            margin-bottom: 15px;
-            font-weight: 500;
-        }
-
-        .token-card .status-item .value {
-            color: #e0e0e0;
-        }
-
-        .token-card .status-item .value.warning {
-            color: #ff4d4d;
-            font-weight: 700;
-        }
-
-        .top-up-button {
-            background: linear-gradient(90deg, #ff4d4d, #ff7676);
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            margin-top: 10px;
-            display: inline-block;
-        }
-
-        .top-up-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(255, 77, 77, 0.4);
-        }
-
         .download-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             margin-top: 20px;
             text-align: center;
         }
 
-        .download-links a {
+        .download-link {
             color: #00e6ff;
             text-decoration: none;
-            margin: 0 10px;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 500;
             transition: color 0.3s ease;
         }
 
-        .download-links a:hover {
+        .download-link:hover {
             color: #00b4d8;
         }
 
         .error-message {
             color: #ff4d4d;
             text-align: center;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        @media (max-width: 500px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            .button {
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-
-            .status-card h2, .token-card h2 {
-                font-size: 18px;
-            }
-
-            .status-item {
-                font-size: 14px;
-            }
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 500;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>BDE Email Parser</h1>
-        <button class="button" id="fetch-emails">Fetch Emails</button>
-        <div class="error-message" id="error-message" style="display: none;"></div>
-
+        <button class="button" id="fetch-emails" onclick="startProcess()">Fetch Emails</button>
         <div class="status-card">
-            <h2>Processing Status</h2>
+            <h2>Process Status</h2>
             <div class="status-item">
                 <span>Status:</span>
-                <span class="value" id="status">Idle</span>
+                <span id="status">Idle</span>
             </div>
             <div class="status-item">
                 <span>Emails Fetched:</span>
-                <span class="value" id="emails-fetched">0</span>
+                <span id="email-count">0</span>
             </div>
             <div class="status-item">
                 <span>Emails Processed:</span>
-                <span class="value" id="emails-processed">0 of 0</span>
+                <span id="current-email">0</span>
             </div>
             <div class="status-item">
                 <span>Rows Parsed:</span>
-                <span class="value" id="rows-parsed">0</span>
+                <span id="row-count">0</span>
             </div>
             <div class="progress-bar">
                 <div class="progress" id="progress"></div>
             </div>
         </div>
-
-        <div class="token-card" id="token-card">
-            <h2>API Token Status</h2>
-            <div class="status-item">
-                <span>Requests Remaining:</span>
-                <span class="value" id="tokens-remaining">Unknown</span>
-            </div>
-            <div class="status-item">
-                <span>Total Requests:</span>
-                <span class="value" id="tokens-total">Unknown</span>
-            </div>
-            <button class="top-up-button" id="top-up-button" style="display: none;">Top Up Tokens</button>
-        </div>
-
         <div class="download-links" id="download-links" style="display: none;">
-            <a id="download-csv" href="#">Download CSV</a>
-            <a id="download-log" href="#">Download Debug Log</a>
+            <a href="#" class="download-link" id="download-csv">Download CSV</a>
+            <a href="#" class="download-link" id="download-debug">Download Debug Log</a>
         </div>
+        <div class="error-message" id="error-message"></div>
     </div>
 
     <script>
-        const BASE_URL = "https://bde-project.onrender.com";
-
-        const fetchEmailsButton = document.getElementById("fetch-emails");
-        const statusElement = document.getElementById("status");
-        const emailsFetchedElement = document.getElementById("emails-fetched");
-        const emailsProcessedElement = document.getElementById("emails-processed");
-        const rowsParsedElement = document.getElementById("rows-parsed");
-        const progressBar = document.getElementById("progress");
-        const tokensRemainingElement = document.getElementById("tokens-remaining");
-        const tokensTotalElement = document.getElementById("tokens-total");
-        const tokenCard = document.getElementById("token-card");
-        const topUpButton = document.getElementById("top-up-button");
-        const downloadLinks = document.getElementById("download-links");
-        const downloadCsvLink = document.getElementById("download-csv");
-        const downloadLogLink = document.getElementById("download-log");
-        const errorMessageElement = document.getElementById("error-message");
-
         let processId = null;
-        let pollingInterval = null;
+        const backendUrl = "https://bde-project.onrender.com";
 
-        fetchEmailsButton.addEventListener("click", async () => {
-            fetchEmailsButton.disabled = true;
-            fetchEmailsButton.textContent = "Fetching...";
-            statusElement.textContent = "Starting";
-            emailsFetchedElement.textContent = "0";
-            emailsProcessedElement.textContent = "0 of 0";
-            rowsParsedElement.textContent = "0";
-            progressBar.style.width = "0%";
-            downloadLinks.style.display = "none";
-            errorMessageElement.style.display = "none";
+        async function startProcess() {
+            const button = document.getElementById("fetch-emails");
+            button.disabled = true;
+            document.getElementById("status").textContent = "Starting...";
+            document.getElementById("error-message").style.display = "none";
 
             try {
-                const response = await fetch(`${BASE_URL}/start-process`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Failed to start process: ${errorText}`);
-                }
+                const response = await fetch(`${backendUrl}/start-process`, { method: "POST" });
+                if (!response.ok) throw new Error("Failed to start process");
                 const data = await response.json();
                 processId = data.process_id;
-                startPolling();
+                document.getElementById("status").textContent = "Running";
+                updateStatus();
             } catch (error) {
-                console.error("Error starting process:", error);
-                statusElement.textContent = "Error";
-                errorMessageElement.textContent = error.message;
-                errorMessageElement.style.display = "block";
-                fetchEmailsButton.disabled = false;
-                fetchEmailsButton.textContent = "Fetch Emails";
+                document.getElementById("status").textContent = "Error";
+                document.getElementById("error-message").textContent = error.message;
+                document.getElementById("error-message").style.display = "block";
+                button.disabled = false;
             }
-        });
-
-        function startPolling() {
-            pollingInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`${BASE_URL}/status/${processId}`);
-                    if (!response.ok) {
-                        if (response.status === 404) {
-                            stopPolling();
-                            return;
-                        }
-                        const errorText = await response.text();
-                        throw new Error(`Failed to fetch status: ${errorText}`);
-                    }
-                    const data = await response.json();
-
-                    // Update status
-                    statusElement.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
-                    emailsFetchedElement.textContent = data.email_count || 0;
-                    emailsProcessedElement.textContent = `${data.current_email || 0} of ${data.email_count || 0}`;
-                    rowsParsedElement.textContent = data.row_count || 0;
-
-                    // Update progress bar
-                    const progress = data.email_count > 0 ? (data.current_email / data.email_count) * 100 : 0;
-                    progressBar.style.width = `${progress}%`;
-
-                    // Update token status
-                    const remainingRequests = data.remaining_requests || "Unknown";
-                    const totalRequests = data.total_requests || "Unknown";
-                    tokensRemainingElement.textContent = remainingRequests;
-                    tokensTotalElement.textContent = totalRequests;
-
-                    if (remainingRequests !== "Unknown" && totalRequests !== "Unknown") {
-                        const remaining = parseInt(remainingRequests);
-                        const total = parseInt(totalRequests);
-                        const percentage = (remaining / total) * 100;
-                        if (percentage < 10) {
-                            tokenCard.classList.add("warning");
-                            tokensRemainingElement.classList.add("warning");
-                            topUpButton.style.display = "inline-block";
-                            topUpButton.onclick = () => window.location.href = "https://x.ai/account";
-                        } else {
-                            tokenCard.classList.remove("warning");
-                            tokensRemainingElement.classList.remove("warning");
-                            topUpButton.style.display = "none";
-                        }
-                    }
-
-                    // Handle completion or error
-                    if (data.status === "done" || data.status === "error") {
-                        stopPolling();
-                        fetchEmailsButton.disabled = false;
-                        fetchEmailsButton.textContent = "Fetch Emails";
-                        if (data.status === "done" && data.output_file) {
-                            downloadLinks.style.display = "block";
-                            downloadCsvLink.href = `${BASE_URL}/download/${data.output_file}`;
-                            downloadLogLink.href = `${BASE_URL}/download/${data.debug_log}`;
-                        }
-                        if (data.status === "error" && data.error) {
-                            errorMessageElement.textContent = data.error;
-                            errorMessageElement.style.display = "block";
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error polling status:", error);
-                    stopPolling();
-                    statusElement.textContent = "Error";
-                    errorMessageElement.textContent = error.message;
-                    errorMessageElement.style.display = "block";
-                    fetchEmailsButton.disabled = false;
-                    fetchEmailsButton.textContent = "Fetch Emails";
-                }
-            }, 1000);
         }
 
-        function stopPolling() {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
+        async function updateStatus() {
+            if (!processId) return;
+
+            try {
+                const response = await fetch(`${backendUrl}/status/${processId}`);
+                if (!response.ok) throw new Error("Failed to fetch status");
+                const data = await response.json();
+
+                document.getElementById("status").textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                document.getElementById("email-count").textContent = data.email_count;
+                document.getElementById("current-email").textContent = data.current_email;
+                document.getElementById("row-count").textContent = data.row_count;
+
+                const progressPercent = data.email_count > 0 ? (data.current_email / data.email_count) * 100 : 0;
+                document.getElementById("progress").style.width = `${progressPercent}%`;
+
+                if (data.status === "done") {
+                    document.getElementById("fetch-emails").disabled = false;
+                    document.getElementById("download-links").style.display = "flex";
+                    document.getElementById("download-csv").href = `${backendUrl}/download/${data.output_file}`;
+                    document.getElementById("download-debug").href = `${backendUrl}/download/${data.debug_log}`;
+                    processId = null;
+                } else if (data.status === "error") {
+                    document.getElementById("fetch-emails").disabled = false;
+                    document.getElementById("error-message").textContent = data.error || "An error occurred";
+                    document.getElementById("error-message").style.display = "block";
+                    processId = null;
+                } else {
+                    setTimeout(updateStatus, 1000);
+                }
+            } catch (error) {
+                document.getElementById("status").textContent = "Error";
+                document.getElementById("error-message").textContent = error.message;
+                document.getElementById("error-message").style.display = "block";
+                document.getElementById("fetch-emails").disabled = false;
+                processId = null;
             }
         }
     </script>
