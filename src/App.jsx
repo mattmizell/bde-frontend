@@ -1,156 +1,111 @@
-// src/App.jsx
-import React, { useState, useEffect } from "react";
+// App.jsx
 
-const API_BASE_URL = "/api"; // Use the proxy endpoint
+import React, { useState, useEffect } from 'react';
 
 function App() {
-  const [isLoading, setIsLoading] = useState(false);
   const [processId, setProcessId] = useState(null);
-  const [log, setLog] = useState("");
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState(null);
+
+  const startProcess = async () => {
+    try {
+      setError(null);
+      setStatus('Starting process...');
+
+      const response = await fetch('/api/start-process', { method: 'POST' });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Process started:', data);
+
+      if (data.process_id) {
+        setProcessId(data.process_id);
+        setStatus('Processing started. Monitoring status...');
+      } else {
+        throw new Error('Invalid response from server.');
+      }
+    } catch (err) {
+      console.error('Error starting process:', err);
+      setError('Failed to start processing. Please try again.');
+      setStatus(null);
+    }
+  };
+
+  const checkStatus = async () => {
+    try {
+      if (!processId) return;
+
+      const response = await fetch(`/api/status/${processId}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Status:', data);
+
+      if (data.status === 'done') {
+        setStatus('Processing complete. Downloading files...');
+        if (data.output_file) {
+          downloadFile(data.output_file);
+        }
+        if (data.failed_file) {
+          downloadFile(data.failed_file);
+        }
+        setProcessId(null);
+      } else if (data.status === 'processing') {
+        setStatus(`Processing... (${data.current_email}/${data.email_count} emails)`);
+      } else if (data.status === 'error') {
+        setStatus('Error occurred during processing.');
+        setError(data.error || 'Unknown error during processing.');
+        setProcessId(null);
+      }
+    } catch (err) {
+      console.error('Error checking status:', err);
+      setError('Failed to check process status.');
+      setProcessId(null);
+    }
+  };
+
+  const downloadFile = (filename) => {
+    const link = document.createElement('a');
+    link.href = `/api/download/${filename}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
-    let interval;
-    if (processId) {
-      interval = setInterval(async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/status/${processId}`); // No credentials: "include"
-          if (!response.ok) {
-            throw new Error("Failed to fetch status");
-          }
-          const status = await response.json();
+    if (!processId) return;
 
-          if (status.status === "done") {
-            setLog(`✅ Completed: ${status.row_count} rows parsed.`);
-            setIsLoading(false);
-
-            // Immediately download parsed CSV
-            autoDownloadFile(status.output_file);
-
-            // Also try to download failed CSV if exists
-            const failedFilename = "failed_" + status.output_file.split("_")[1];
-            autoDownloadFile(failedFilename);
-
-            clearInterval(interval);
-          } else if (status.status === "error") {
-            setLog(`❌ Error: ${status.error}`);
-            setIsLoading(false);
-            clearInterval(interval);
-          } else {
-            setLog(
-              `📩 Emails Found: ${status.email_count} | 📨 Processing: ${status.current_email} | ✅ Rows Parsed: ${status.row_count}`
-            );
-          }
-        } catch (error) {
-          console.error("Error checking status:", error);
-          setLog(`❌ Error checking status`);
-          setIsLoading(false);
-          clearInterval(interval);
-        }
-      }, 3000);
-    }
+    const interval = setInterval(() => {
+      checkStatus();
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [processId]);
 
-  // Add keep-alive mechanism
-  useEffect(() => {
-    let keepAliveInterval;
-    if (processId) {
-      keepAliveInterval = setInterval(async () => {
-        try {
-          await fetch(`${API_BASE_URL}/keep-alive`); // No credentials: "include"
-          console.log("Keep-alive ping sent");
-        } catch (error) {
-          console.error("Keep-alive error:", error);
-        }
-      }, 30000); // Every 30 seconds
-    }
-    return () => clearInterval(keepAliveInterval);
-  }, [processId]);
-
-  const fetchWithRetry = async (url, options = {}, retries = 3, delay = 2000) => {
-    try {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        if (retries > 0) {
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return fetchWithRetry(url, options, retries - 1, delay);
-        } else {
-          throw new Error(`Failed after ${retries} retries`);
-        }
-      }
-      return response;
-    } catch (error) {
-      if (retries > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return fetchWithRetry(url, options, retries - 1, delay);
-      } else {
-        throw error;
-      }
-    }
-  };
-
-  const handleFetchEmails = async () => {
-    try {
-      setIsLoading(true);
-      setLog("⏳ Starting to fetch emails...");
-      setProcessId(null);
-
-      const response = await fetchWithRetry(`${API_BASE_URL}/start-process`, {
-        method: "POST",
-      }); // No credentials: "include"
-      const data = await response.json();
-      setProcessId(data.process_id);
-    } catch (error) {
-      console.error("Error starting process:", error);
-      setLog(`❌ Error starting process`);
-      setIsLoading(false);
-    }
-  };
-
-  const autoDownloadFile = async (filename) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/download/${filename}`); // No credentials: "include"
-      if (!response.ok) {
-        throw new Error("Failed to fetch file");
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Auto download error:", error);
-    }
-  };
-
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>BDE Email Parser</h1>
-
+    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
+      <h1>Better Day Energy Parser</h1>
       <button
-        onClick={handleFetchEmails}
-        disabled={isLoading}
+        onClick={startProcess}
         style={{
-          padding: "10px 20px",
-          backgroundColor: "#4CAF50",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: isLoading ? "not-allowed" : "pointer",
-          fontSize: "16px",
+          padding: '0.5rem 1rem',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          marginBottom: '1rem',
         }}
       >
-        {isLoading ? "Processing..." : "Fetch Emails"}
+        Fetch Emails
       </button>
-
-      <div style={{ marginTop: "20px" }}>
-        <h3>Status:</h3>
-        <p>{log}</p>
+      <div style={{ marginTop: '1rem' }}>
+        {status && <p>Status: {status}</p>}
+        {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       </div>
     </div>
   );
