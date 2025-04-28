@@ -8,20 +8,19 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// API Base URL (backend FastAPI server)
 const API_BASE_URL = 'https://bde-project.onrender.com';
 
-// Static files
+// Serve static files
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Proxy API requests
+// Proxy all /api requests to backend server
 app.use('/api', proxy(API_BASE_URL, {
   proxyReqPathResolver: (req) => {
     return req.originalUrl.replace('/api', '');
-  },
+  }
 }));
 
-// SPA fallback
+// Fallback to index.html for SPA routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
