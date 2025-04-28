@@ -23,10 +23,25 @@ app.post('/api/start-process', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
+    console.log(`Backend response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`Backend responded with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Backend error response: ${errorText}`);
+      throw new Error(`Backend responded with status ${response.status}: ${errorText}`);
     }
-    const data = await response.json();
+
+    const responseText = await response.text();
+    console.log(`Backend raw response: ${responseText}`);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse backend response as JSON:', parseError.message);
+      throw new Error('Invalid JSON response from backend');
+    }
+
     res.json(data);
   } catch (error) {
     console.error('Proxy error for /start-process:', error.message);
@@ -39,10 +54,25 @@ app.get('/api/status/:processId', async (req, res) => {
   console.log(`Proxying GET /api/status/${req.params.processId}`);
   try {
     const response = await fetch(`${API_BASE_URL}/status/${req.params.processId}`);
+    console.log(`Backend response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`Backend responded with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Backend error response: ${errorText}`);
+      throw new Error(`Backend responded with status ${response.status}: ${errorText}`);
     }
-    const data = await response.json();
+
+    const responseText = await response.text();
+    console.log(`Backend raw response: ${responseText}`);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse backend response as JSON:', parseError.message);
+      throw new Error('Invalid JSON response from backend');
+    }
+
     res.json(data);
   } catch (error) {
     console.error('Proxy error for /status:', error.message);
@@ -55,9 +85,14 @@ app.get('/api/download/:filename', async (req, res) => {
   console.log(`Proxying GET /api/download/${req.params.filename}`);
   try {
     const response = await fetch(`${API_BASE_URL}/download/${req.params.filename}`);
+    console.log(`Backend response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`Backend responded with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Backend error response: ${errorText}`);
+      throw new Error(`Backend responded with status ${response.status}: ${errorText}`);
     }
+
     const blob = await response.blob();
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -75,10 +110,25 @@ app.get('/api/keep-alive', async (req, res) => {
   console.log('Proxying GET /api/keep-alive');
   try {
     const response = await fetch(`${API_BASE_URL}/keep-alive`);
+    console.log(`Backend response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`Backend responded with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Backend error response: ${errorText}`);
+      throw new Error(`Backend responded with status ${response.status}: ${errorText}`);
     }
-    const data = await response.json();
+
+    const responseText = await response.text();
+    console.log(`Backend raw response: ${responseText}`);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse backend response as JSON:', parseError.message);
+      throw new Error('Invalid JSON response from backend');
+    }
+
     res.json(data);
   } catch (error) {
     console.error('Proxy error for /keep-alive:', error.message);
