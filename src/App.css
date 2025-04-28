@@ -1,42 +1,155 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  background: #252525;
+  border-radius: 15px;
+  padding: 30px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+h1 {
   text-align: center;
+  color: #00e6ff;
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.button {
+  background: linear-gradient(90deg, #00e6ff, #00b4d8);
+  color: #1a1a1a;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: block;
+  margin: 0 auto 20px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 230, 255, 0.4);
+}
+
+.button:disabled {
+  background: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.status-card {
+  background: #333;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #444;
+  transition: all 0.3s ease;
+}
+
+.status-card:hover {
+  border-color: #00e6ff;
+  box-shadow: 0 0 15px rgba(0, 230, 255, 0.2);
+}
+
+.status-card h2 {
+  font-size: 20px;
+  color: #00e6ff;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.status-item span {
+  color: #b0b0b0;
+}
+
+.status-item .value {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.progress-bar {
+  background: #444;
+  border-radius: 5px;
+  height: 10px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress {
+  background: linear-gradient(90deg, #00e6ff, #00b4d8);
+  height: 100%;
+  width: 0;
+  transition: width 0.5s ease;
+}
+
+.token-card {
+  background: #333;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #444;
+  transition: all 0.3s ease;
+}
+
+.token-card.warning {
+  border-color: #ff4d4d;
+  box-shadow: 0 0 15px rgba(255, 77, 77, 0.2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 15px rgba(255, 77, 77, 0.2);
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    box-shadow: 0 0 25px rgba(255, 77, 77, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(255, 77, 77, 0.2);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.token-card h2 {
+  font-size: 20px;
+  color: #00e6ff;
+  margin-bottom: 15px;
+  font-weight: 500;
 }
 
-.card {
-  padding: 2em;
+.token-card .status-item .value {
+  color: #e0e0e0;
 }
 
-.read-the-docs {
-  color: #888;
-}
+.token-card .status-item .value.warning {
+  color: #ff4d4d;
+  font-weight:

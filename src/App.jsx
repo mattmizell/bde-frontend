@@ -1,145 +1,134 @@
 import React, { useState, useEffect } from "react";
+import "./App.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8010";
+const BASE_URL = "https://bde-project.onrender.com"; // Your backend URL
 
-function App() {
-  const [log, setLog] = useState("Ready to fetch emails...");
+const App = () => {
   const [processId, setProcessId] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [outputFile, setOutputFile] = useState(null);
-  const [debugLogFile, setDebugLogFile] = useState(null); // Add state for debug log file
+  const [status, setStatus] = useState({
+    status: "Idle",
+    email_count: 0,
+    current_email: 0,
+    row_count: 0,
+    output_file: null,
+    debug_log: null,
+    remaining_requests: "Unknown",
+    total_requests: "Unknown",
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  console.log("API_BASE_URL:", API_BASE_URL);
-
-  const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-        const response = await fetch(`${API_BASE_URL}${url}`, {
-          ...options,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (!response.ok) throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        return await response.json();
-      } catch (error) {
-        if (i === retries - 1) throw error;
-        console.log(`Retrying fetch... Attempt ${i + 1}`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  };
-
-  const fetchEmails = async () => {
-    setLog("Starting email fetch process...");
-    setIsLoading(true);
-    setProgress(0);
-    setOutputFile(null);
-    setDebugLogFile(null); // Reset debug log file
-
+  const startProcess = async () => {
+    setIsProcessing(true);
     try {
-      await fetch(`${API_BASE_URL}/keep-alive`);
-      console.log("Sent keep-alive request");
-      const data = await fetchWithRetry(`/start-process`, {
+      const response = await fetch(`${BASE_URL}/start-process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error("Failed to start process");
+      const data = await response.json();
       setProcessId(data.process_id);
-      console.log("Started process with ID:", data.process_id);
     } catch (error) {
-      console.error("Fetch error:", error);
-      setLog(`Failed to start process: ${error.message}`);
-      setIsLoading(false);
+      console.error("Error starting process:", error);
+      setStatus((prev) => ({ ...prev, status: "Error" }));
+      setIsProcessing(false);
     }
   };
 
   useEffect(() => {
     if (!processId) return;
 
-    const interval = setInterval(async () => {
+    const pollingInterval = setInterval(async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/status/${processId}`);
-        if (!response.ok) throw new Error("Status fetch failed");
-
-        const status = await response.json();
-        if (status.status === "done") {
-          setLog(`✅ Completed: ${status.row_count} rows parsed.`);
-          setOutputFile(status.output_file);
-          setDebugLogFile(status.debug_log); // Set debug log file from status
-          setIsLoading(false);
-          clearInterval(interval);
-        } else if (status.status === "error") {
-          setLog(`❌ Error: ${status.error}`);
-          setIsLoading(false);
-          clearInterval(interval);
-        } else {
-          setLog(`⌛ Processing emails... (${status.current_email} of ${status.email_count})`);
-          if (status.email_count > 0) {
-            setProgress(Math.round((status.current_email / status.email_count) * 100));
+        const response = await fetch(`${BASE_URL}/status/${processId}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            clearInterval(pollingInterval);
+            return;
           }
+          throw new Error("Failed to fetch status");
         }
-      } catch (err) {
-        console.error("Status error:", err);
-        setLog(`❌ Status error: ${err.message}`);
-        setIsLoading(false);
-        clearInterval(interval);
-      }
-    }, 5000);
+        const data = await response.json();
+        setStatus(data);
 
-    return () => clearInterval(interval);
+        if (data.status === "done" || data.status === "error") {
+          clearInterval(pollingInterval);
+          setIsProcessing(false);
+        }
+      } catch (error) {
+        console.error("Error polling status:", error);
+        setStatus((prev) => ({ ...prev, status: "Error" }));
+        clearInterval(pollingInterval);
+        setIsProcessing(false);
+      }
+    }, 1000);
+
+    return () => clearInterval(pollingInterval);
   }, [processId]);
 
-  return (
-    <main className="p-10 text-gray-800 font-sans">
-      <h1 className="text-4xl font-bold mb-4">Better Day Energy Parser</h1>
+  const progress = status.email_count > 0 ? (status.current_email / status.email_count) * 100 : 0;
+  const isLowTokens =
+    status.remaining_requests !== "Unknown" &&
+    status.total_requests !== "Unknown" &&
+    (parseInt(status.remaining_requests) / parseInt(status.total_requests)) * 100 < 10;
 
-      <button
-        onClick={fetchEmails}
-        disabled={isLoading}
-        className={`bg-white text-black border border-gray-400 px-6 py-3 rounded shadow hover:bg-gray-100 ${
-          isLoading ? "opacity-50 cursor-not-allowed" : ""
-        }`}
-      >
-        {isLoading ? "Processing..." : "Fetch Emails"}
+  return (
+    <div className="container">
+      <h1>BDE Email Parser</h1>
+      <button className="button" onClick={startProcess} disabled={isProcessing}>
+        {isProcessing ? "Fetching..." : "Fetch Emails"}
       </button>
 
-      <div className="mt-6 text-sm whitespace-pre-wrap">
-        {log}
-        {progress > 0 && progress < 100 && (
-          <div className="mt-2 w-full bg-gray-300 rounded-full h-4">
-            <div
-              className="bg-green-500 h-4 rounded-full"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
+      <div className="status-card">
+        <h2>Processing Status</h2>
+        <div className="status-item">
+          <span>Status:</span>
+          <span className="value">{status.status.charAt(0).toUpperCase() + status.status.slice(1)}</span>
+        </div>
+        <div className="status-item">
+          <span>Emails Fetched:</span>
+          <span className="value">{status.email_count}</span>
+        </div>
+        <div className="status-item">
+          <span>Emails Processed:</span>
+          <span className="value">{`${status.current_email} of ${status.email_count}`}</span>
+        </div>
+        <div className="status-item">
+          <span>Rows Parsed:</span>
+          <span className="value">{status.row_count}</span>
+        </div>
+        <div className="progress-bar">
+          <div className="progress" style={{ width: `${progress}%` }}></div>
+        </div>
+      </div>
+
+      <div className={`token-card ${isLowTokens ? "warning" : ""}`}>
+        <h2>API Token Status</h2>
+        <div className="status-item">
+          <span>Requests Remaining:</span>
+          <span className={`value ${isLowTokens ? "warning" : ""}`}>{status.remaining_requests}</span>
+        </div>
+        <div className="status-item">
+          <span>Total Requests:</span>
+          <span className="value">{status.total_requests}</span>
+        </div>
+        {isLowTokens && (
+          <button
+            className="top-up-button"
+            onClick={() => (window.location.href = "https://x.ai/account")}
+          >
+            Top Up Tokens
+          </button>
         )}
       </div>
 
-      {outputFile && (
-        <div className="mt-6">
-          <a
-            href={`${API_BASE_URL}/download/${outputFile}`}
-            className="text-blue-600 underline hover:text-blue-800"
-          >
-            📂 Download Output CSV
-          </a>
+      {status.status === "done" && status.output_file && (
+        <div className="download-links">
+          <a href={`${BASE_URL}/download/${status.output_file}`}>Download CSV</a>
+          <a href={`${BASE_URL}/download/${status.debug_log}`}>Download Debug Log</a>
         </div>
       )}
-
-      {debugLogFile && (
-        <div className="mt-2">
-          <a
-            href={`${API_BASE_URL}/download/${debugLogFile}`}
-            className="text-blue-600 underline hover:text-blue-800"
-          >
-            📜 Download Debug Log
-          </a>
-        </div>
-      )}
-    </main>
+    </div>
   );
-}
+};
 
 export default App;
