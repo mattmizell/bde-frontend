@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // Import React explicitly
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8010"; // Fallback if .env is missing
 
