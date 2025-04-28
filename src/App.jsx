@@ -1,6 +1,7 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
 
-const API_BASE_URL = "https://bde-project.onrender.com";
+const API_BASE_URL = "/api"; // Use the proxy endpoint
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,9 +13,7 @@ function App() {
     if (processId) {
       interval = setInterval(async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/status/${processId}`, {
-            credentials: "include",
-          });
+          const response = await fetch(`${API_BASE_URL}/status/${processId}`); // No credentials: "include"
           if (!response.ok) {
             throw new Error("Failed to fetch status");
           }
@@ -53,6 +52,22 @@ function App() {
     return () => clearInterval(interval);
   }, [processId]);
 
+  // Add keep-alive mechanism
+  useEffect(() => {
+    let keepAliveInterval;
+    if (processId) {
+      keepAliveInterval = setInterval(async () => {
+        try {
+          await fetch(`${API_BASE_URL}/keep-alive`); // No credentials: "include"
+          console.log("Keep-alive ping sent");
+        } catch (error) {
+          console.error("Keep-alive error:", error);
+        }
+      }, 30000); // Every 30 seconds
+    }
+    return () => clearInterval(keepAliveInterval);
+  }, [processId]);
+
   const fetchWithRetry = async (url, options = {}, retries = 3, delay = 2000) => {
     try {
       const response = await fetch(url, options);
@@ -83,8 +98,7 @@ function App() {
 
       const response = await fetchWithRetry(`${API_BASE_URL}/start-process`, {
         method: "POST",
-        credentials: "include",
-      });
+      }); // No credentials: "include"
       const data = await response.json();
       setProcessId(data.process_id);
     } catch (error) {
@@ -96,9 +110,7 @@ function App() {
 
   const autoDownloadFile = async (filename) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/download/${filename}`, {
-        credentials: "include",
-      });
+      const response = await fetch(`${API_BASE_URL}/download/${filename}`); // No credentials: "include"
       if (!response.ok) {
         throw new Error("Failed to fetch file");
       }
