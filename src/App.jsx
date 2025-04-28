@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react"; // Import React explicitly
+import React, { useState, useEffect } from "react";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8010"; // Fallback if .env is missing
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8010";
 
 function App() {
   const [log, setLog] = useState("Ready to fetch emails...");
@@ -9,16 +9,19 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [outputFile, setOutputFile] = useState(null);
 
+  // Log API_BASE_URL for debugging
+  console.log("API_BASE_URL:", API_BASE_URL);
+
   const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
     for (let i = 0; i < retries; i++) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-        const response = await fetch(`${API_BASE_URL}${url}`, { method: "POST" });
-
+        const response = await fetch(`${API_BASE_URL}${url}`, {
+          ...options,
+          signal: controller.signal,
+        });
         clearTimeout(timeoutId);
-
         if (!response.ok) throw new Error(`Server error: ${response.status} ${response.statusText}`);
         return await response.json();
       } catch (error) {
@@ -36,11 +39,15 @@ function App() {
     setOutputFile(null);
 
     try {
+      // Wake up backend
+      await fetch(`${API_BASE_URL}/keep-alive`);
+      console.log("Sent keep-alive request");
       const data = await fetchWithRetry(`/start-process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
       setProcessId(data.process_id);
+      console.log("Started process with ID:", data.process_id);
     } catch (error) {
       console.error("Fetch error:", error);
       setLog(`Failed to start process: ${error.message}`);
@@ -78,7 +85,7 @@ function App() {
         setIsLoading(false);
         clearInterval(interval);
       }
-    }, 3000);
+    }, 5000); // Increased from 3000 to 5000
 
     return () => clearInterval(interval);
   }, [processId]);
