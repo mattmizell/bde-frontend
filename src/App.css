@@ -1,3 +1,4 @@
+/* Global Reset and Font */
 * {
   margin: 0;
   padding: 0;
@@ -5,6 +6,7 @@
   font-family: "Roboto", sans-serif;
 }
 
+/* Body Layout and Background */
 body {
   background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
   color: #e0e0e0;
@@ -15,6 +17,7 @@ body {
   padding: 20px;
 }
 
+/* Main Container */
 .container {
   background: #252525;
   border-radius: 15px;
@@ -24,6 +27,7 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
+/* Heading */
 h1 {
   text-align: center;
   color: #00e6ff;
@@ -34,6 +38,7 @@ h1 {
   letter-spacing: 2px;
 }
 
+/* Primary Button */
 .button {
   background: linear-gradient(90deg, #00e6ff, #00b4d8);
   color: #1a1a1a;
@@ -60,6 +65,7 @@ h1 {
   box-shadow: none;
 }
 
+/* Status Card */
 .status-card {
   background: #333;
   border-radius: 10px;
@@ -81,6 +87,7 @@ h1 {
   font-weight: 500;
 }
 
+/* Individual Status Rows */
 .status-item {
   display: flex;
   justify-content: space-between;
@@ -98,6 +105,7 @@ h1 {
   font-weight: 500;
 }
 
+/* Progress Bar */
 .progress-bar {
   background: #444;
   border-radius: 5px;
@@ -113,6 +121,35 @@ h1 {
   transition: width 0.5s ease;
 }
 
+/* Polling Loading Animation */
+.loading-animation {
+  margin-top: 10px;
+  height: 6px;
+  width: 100%;
+  background-color: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.loading-animation::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #00e6ff 0%, #00b4d8 100%);
+  animation: loadingSlide 2s infinite linear;
+}
+
+@keyframes loadingSlide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Token Warning Card */
 .token-card {
   background: #333;
   border-radius: 10px;
@@ -152,4 +189,41 @@ h1 {
 
 .token-card .status-item .value.warning {
   color: #ff4d4d;
-  font-weight:
+  font-weight: 600;
+}
+
+/* Download Links */
+.download-links {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.download-links a {
+  display: inline-block;
+  margin: 0 10px;
+  color: #00e6ff;
+  font-size: 15px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.download-links a:hover {
+  color: #00b4d8;
+  text-decoration: underline;
+}
+
+/* Optional Status Text Colors */
+.status-success {
+  color: #00e676;
+  font-weight: 500;
+}
+
+.status-error {
+  color: #ff4d4d;
+  font-weight: 500;
+}
+
+.status-neutral {
+  color: #e0e0e0;
+  font-weight: 400;
+}
