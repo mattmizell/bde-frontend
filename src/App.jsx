@@ -1,129 +1,98 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 function App() {
-  const [processId, setProcessId] = useState(null);
   const [status, setStatus] = useState(null);
-  const [polling, setPolling] = useState(false);
-  const [downloadLink, setDownloadLink] = useState(null);
-  const [debugLink, setDebugLink] = useState(null);
+  const [processId, setProcessId] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const startProcess = async () => {
-    setStatus(null);
-    setDownloadLink(null);
-    setDebugLink(null);
-
-    const response = await fetch("https://bde-project.onrender.com/start-process", {
-      method: "POST",
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      setProcessId(data.process_id);
-      setPolling(true);
-    } else {
-      console.error("Failed to start process");
+    try {
+      const response = await axios.post("https://bde-project.onrender.com/start-process");
+      const { process_id } = response.data;
+      setProcessId(process_id);
+      setStatus({ status: "starting..." });
+    } catch (err) {
+      alert("Failed to start process");
+      console.error(err);
     }
   };
 
-  const handleCleanup = async (id) => {
+  const pollStatus = async (id) => {
     try {
-      await fetch(`https://bde-project.onrender.com/cleanup/${id}`, {
-        method: "POST",
-      });
-      console.log("✅ Cleanup complete");
+      const response = await axios.get(`https://bde-project.onrender.com/status/${id}`);
+      const data = response.data;
+      setStatus(data);
+      if (data.status === "done" || data.status === "error") {
+        clearInterval(window.poller);
+      }
     } catch (err) {
-      console.error("⚠️ Cleanup failed:", err);
+      console.log("Status file not found. Stopping polling.");
+      clearInterval(window.poller);
+    }
+  };
+
+  const downloadCSV = async () => {
+    if (!status?.output_file) return;
+    try {
+      setDownloading(true);
+      const response = await axios.get(`https://bde-project.onrender.com/download/${status.output_file}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", status.output_file);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      await axios.post(`https://bde-project.onrender.com/cleanup/${processId}`);
+      setDownloading(false);
+    } catch (err) {
+      setDownloading(false);
+      alert("Download failed or file not available.");
     }
   };
 
   useEffect(() => {
-    let interval;
-
-    const updateStatus = async () => {
-      if (!processId) return;
-
-      const response = await fetch(`https://bde-project.onrender.com/status/${processId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setStatus(data);
-
-        if (data.status === "done" || data.status === "error") {
-          setPolling(false);
-          setDownloadLink(`https://bde-project.onrender.com/download/${data.output_file}`);
-          setDebugLink(`https://bde-project.onrender.com/download/${data.debug_log}`);
-        }
-      } else if (response.status === 404) {
-        console.error("Status file not found. Stopping polling.");
-        setPolling(false);
-      } else {
-        console.error("Status fetch failed");
-      }
-    };
-
-    if (polling) {
-      interval = setInterval(updateStatus, 3000);
+    if (processId) {
+      window.poller = setInterval(() => pollStatus(processId), 2000);
     }
-
-    return () => clearInterval(interval);
-  }, [polling, processId]);
+    return () => clearInterval(window.poller);
+  }, [processId]);
 
   return (
-    <div className="container">
-      <h1>Better Day Energy Parser</h1>
-      <button className="button" onClick={startProcess} disabled={polling}>
-        {polling ? "Processing..." : "Start Process"}
+    <div className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Better Day Energy Parser</h1>
+      <button
+        onClick={startProcess}
+        className="bg-blue-600 text-white px-4 py-2 rounded shadow mb-4 hover:bg-blue-700"
+      >
+        Start Parsing
       </button>
 
       {status && (
-        <div className="status-card">
-          <h2>Status</h2>
-          <div className="status-item">
-            <span>Emails Fetched:</span>
-            <span className="value">{status.email_count}</span>
-          </div>
-          <div className="status-item">
-            <span>Emails Processed:</span>
-            <span className="value">{status.current_email}</span>
-          </div>
-          <div className="status-item">
-            <span>Parsed Rows:</span>
-            <span className="value">{status.row_count}</span>
-          </div>
-          <div className="status-item">
-            <span>Status:</span>
-            <span className="value">{status.status}</span>
-          </div>
+        <div className="mb-4 p-4 bg-gray-100 rounded">
+          <p><strong>Status:</strong> {status.status}</p>
+          <p><strong>Emails Fetched:</strong> {status.email_count}</p>
+          <p><strong>Current Email:</strong> {status.current_email}</p>
+          <p><strong>Rows Parsed:</strong> {status.row_count}</p>
+          <p><strong>Output:</strong> {status.output_file || "(none)"}</p>
         </div>
       )}
 
-      {downloadLink && (
-        <div className="token-card">
-          <h2>Download Files</h2>
-          <div className="status-item">
-            <span>Parsed CSV:</span>
-            <a
-              className="value"
-              href={downloadLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => handleCleanup(processId)}
-            >
-              Download
-            </a>
-          </div>
-          <div className="status-item">
-            <span>Debug Log:</span>
-            <a
-              className="value"
-              href={debugLink}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Download
-            </a>
-          </div>
-        </div>
+      {status?.status === "done" && status?.output_file && status?.row_count > 0 && (
+        <button
+          onClick={downloadCSV}
+          className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
+          disabled={downloading}
+        >
+          {downloading ? "Downloading..." : "Download CSV"}
+        </button>
+      )}
+
+      {status?.status === "done" && status?.row_count === 0 && (
+        <div className="text-red-600 font-semibold">No rows parsed. Check logs or try different emails.</div>
       )}
     </div>
   );
