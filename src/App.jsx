@@ -1,7 +1,5 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
-
 
 function App() {
   const [processId, setProcessId] = useState(null);
@@ -28,6 +26,17 @@ function App() {
     }
   };
 
+  const handleCleanup = async (id) => {
+    try {
+      await fetch(`https://bde-project.onrender.com/cleanup/${id}`, {
+        method: "POST",
+      });
+      console.log("✅ Cleanup complete");
+    } catch (err) {
+      console.error("⚠️ Cleanup failed:", err);
+    }
+  };
+
   useEffect(() => {
     let interval;
 
@@ -39,10 +48,10 @@ function App() {
         const data = await response.json();
         setStatus(data);
 
-        if (data.completed) {
+        if (data.status === "done" || data.status === "error") {
           setPolling(false);
-          setDownloadLink(`https://bde-project.onrender.com/download/${data.parsed_file}`);
-          setDebugLink(`https://bde-project.onrender.com/download/${data.debug_file}`);
+          setDownloadLink(`https://bde-project.onrender.com/download/${data.output_file}`);
+          setDebugLink(`https://bde-project.onrender.com/download/${data.debug_log}`);
         }
       } else if (response.status === 404) {
         console.error("Status file not found. Stopping polling.");
@@ -71,19 +80,19 @@ function App() {
           <h2>Status</h2>
           <div className="status-item">
             <span>Emails Fetched:</span>
-            <span className="value">{status.emails_fetched}</span>
+            <span className="value">{status.email_count}</span>
           </div>
           <div className="status-item">
             <span>Emails Processed:</span>
-            <span className="value">{status.emails_processed}</span>
+            <span className="value">{status.current_email}</span>
           </div>
           <div className="status-item">
             <span>Parsed Rows:</span>
-            <span className="value">{status.parsed_rows}</span>
+            <span className="value">{status.row_count}</span>
           </div>
           <div className="status-item">
-            <span>Completed:</span>
-            <span className="value">{status.completed ? "Yes" : "No"}</span>
+            <span>Status:</span>
+            <span className="value">{status.status}</span>
           </div>
         </div>
       )}
@@ -93,13 +102,24 @@ function App() {
           <h2>Download Files</h2>
           <div className="status-item">
             <span>Parsed CSV:</span>
-            <a className="value" href={downloadLink} target="_blank" rel="noopener noreferrer">
+            <a
+              className="value"
+              href={downloadLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => handleCleanup(processId)}
+            >
               Download
             </a>
           </div>
           <div className="status-item">
             <span>Debug Log:</span>
-            <a className="value" href={debugLink} target="_blank" rel="noopener noreferrer">
+            <a
+              className="value"
+              href={debugLink}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Download
             </a>
           </div>
