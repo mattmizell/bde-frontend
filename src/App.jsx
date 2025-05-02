@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import React from "react";
+
 
 function App() {
   const [status, setStatus] = useState(null);
   const [processId, setProcessId] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("grok-3");
 
   const startProcess = async () => {
     try {
-      const response = await axios.post("https://bde-project.onrender.com/start-process");
+      const response = await axios.post(`https://bde-project.onrender.com/start-process?model=${selectedModel}`);
       const { process_id } = response.data;
       setProcessId(process_id);
       setStatus({ status: "starting..." });
@@ -64,6 +67,22 @@ function App() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Better Day Energy Parser</h1>
+
+      <div className="mb-4">
+        <label htmlFor="model" className="block text-sm font-medium mb-1">
+          Select AI Model:
+        </label>
+        <select
+          id="model"
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+          className="border rounded p-2 w-full"
+        >
+          <option value="grok-3">grok-3</option>
+          <option value="grok-3-mini">grok-3-mini</option>
+        </select>
+      </div>
+
       <button
         onClick={startProcess}
         className="bg-blue-600 text-white px-4 py-2 rounded shadow mb-4 hover:bg-blue-700"

@@ -35,6 +35,7 @@ export default [
         { allowConstantExport: true },
       ],
       'no-undef': 'error',
+      'react/react-in-jsx-scope': 'off',
     },
     settings: {
       react: {
