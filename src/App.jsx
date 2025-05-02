@@ -66,7 +66,7 @@ function App() {
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Better Day Energy Parser</h1>
+      <h1 className="text-2xl font-bold mb-4">Better Day Energy Pricing Parser</h1>
 
       <div className="mb-4">
         <label htmlFor="model" className="block text-sm font-medium mb-1">
