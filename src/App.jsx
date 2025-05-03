@@ -37,36 +37,46 @@ function App() {
     }
   };
 
-  const downloadCSV = async () => {
-    if (!status?.output_file) return;
-    try {
-      setDownloading(true);
-      const response = await axios.get(
-        `https://bde-project.onrender.com/download/${status.output_file}`,
-        {
-          responseType: "blob",
-        }
-      );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", status.output_file);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      await axios.post(
-        `https://bde-project.onrender.com/cleanup/${processId}`
-      );
-      setDownloading(false);
-    } catch (err) {
-      setDownloading(false);
-      alert("Download failed or file not available.");
-    }
-  };
+const downloadCSV = async () => {
+  if (!status?.output_file) return;
+  try {
+    setDownloading(true);
+    const response = await axios.get(
+      `https://bde-project.onrender.com/download/${status.output_file}`,
+      {
+        responseType: "blob",
+      }
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", status.output_file);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Delay cleanup by 5 seconds
+    setTimeout(async () => {
+      try {
+        await axios.post(
+          `https://bde-project.onrender.com/cleanup/${processId}`
+        );
+      } catch (err) {
+        console.error("Cleanup failed:", err);
+      }
+    }, 5000);
+
+    setDownloading(false);
+  } catch (err) {
+    setDownloading(false);
+    alert("Download failed or file not available.");
+  }
+};
+
 
   useEffect(() => {
     if (processId) {
-      window.poller = setInterval(() => pollStatus(processId), 2000);
+      window.poller = setInterval(() => pollStatus(processId), 3000);
     }
     return () => clearInterval(window.poller);
   }, [processId]);
