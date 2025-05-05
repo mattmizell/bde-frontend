@@ -63,9 +63,7 @@ function App() {
       setDownloading(true);
       const response = await axios.get(
         `https://bde-project.onrender.com/download/${status.output_file}`,
-        {
-          responseType: "blob",
-        }
+        { responseType: "blob" }
       );
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -89,6 +87,25 @@ function App() {
     } catch (err) {
       setDownloading(false);
       alert("Download failed or file not available.");
+    }
+  };
+
+  const downloadLog = async () => {
+    if (!processId) return;
+    try {
+      const response = await axios.get(
+        `https://bde-project.onrender.com/log/${processId}`,
+        { responseType: "blob" }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `debug_${processId}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      alert("Log download failed.");
     }
   };
 
@@ -144,18 +161,28 @@ function App() {
           <p><strong>Emails Fetched:</strong> {status.email_count}</p>
           <p><strong>Current Email:</strong> {status.current_email}</p>
           <p><strong>Rows Parsed:</strong> {status.row_count}</p>
-          <p><strong>Output:</strong> {status.output_file || "(none)"}</p>
+          <p><strong>Output:</strong> {status.output_file || "(none)"} </p>
         </div>
       )}
 
-      {status?.status === "done" && status?.output_file && status?.row_count > 0 && (
-        <button
-          onClick={downloadCSV}
-          className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
-          disabled={downloading}
-        >
-          {downloading ? "Downloading..." : "Download CSV"}
-        </button>
+      {(status?.status === "done" || status?.status === "error") && (
+        <div className="flex flex-col gap-2 mt-4">
+          {status?.output_file && status?.row_count > 0 && (
+            <button
+              onClick={downloadCSV}
+              className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
+              disabled={downloading}
+            >
+              {downloading ? "Downloading..." : "Download CSV"}
+            </button>
+          )}
+          <button
+            onClick={downloadLog}
+            className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+          >
+            Download Debug Log
+          </button>
+        </div>
       )}
 
       {status?.status === "done" && status?.row_count === 0 && (
