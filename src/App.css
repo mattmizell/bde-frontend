@@ -227,3 +227,29 @@ h1 {
   color: #e0e0e0;
   font-weight: 400;
 }
+/* New Centered Panel Style */
+.panel {
+  background: #1f1f1f;
+  border-radius: 12px;
+  padding: 20px 30px;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  box-shadow: 0 0 15px rgba(0, 230, 255, 0.2);
+}
+
+/* Enhanced Progress Bar */
+.progress-container {
+  margin-top: 15px;
+  background: #333;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 12px;
+}
+
+.progress-bar-filled {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00e6ff, #00b4d8);
+  transition: width 0.5s ease;
+}
