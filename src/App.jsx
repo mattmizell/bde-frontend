@@ -42,8 +42,15 @@ function App() {
   };
 
   const pollLog = async () => {
+    if (!status?.debug_log) {
+      setLogContent("Waiting for debug log to become available...");
+      return;
+    }
+
     try {
-      const response = await axios.get(`https://bde-project.onrender.com/log/${status.debug_log}`);
+      const response = await axios.get(
+        `https://bde-project.onrender.com/log/${status.debug_log}`
+      );
       setLogContent(response.data);
     } catch (err) {
       setLogContent("Log could not be loaded.");
@@ -85,7 +92,6 @@ function App() {
     }
   };
 
-
   useEffect(() => {
     if (processId) {
       window.poller = setInterval(() => pollStatus(processId), 3000);
@@ -97,8 +103,13 @@ function App() {
     };
   }, [processId]);
 
+  useEffect(() => {
+    const pre = document.querySelector("pre");
+    if (pre) pre.scrollTop = pre.scrollHeight;
+  }, [logContent]);
+
   return (
-    <div className="p-6 max-w-xl mx-auto font-sans text-white">
+    <div className="panel font-sans text-white">
       <h1 className="text-2xl font-bold mb-4 text-center text-cyan-400 uppercase tracking-wide">
         BDE Petroleum Pricing Parser
       </h1>
