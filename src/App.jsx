@@ -85,6 +85,8 @@ function App() {
     }
   };
 
+#touch
+
   useEffect(() => {
     if (processId) {
       window.poller = setInterval(() => pollStatus(processId), 3000);
