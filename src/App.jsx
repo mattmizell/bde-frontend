@@ -6,6 +6,8 @@ function App() {
   const [processId, setProcessId] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [selectedModel, setSelectedModel] = useState("grok-3");
+  const [logVisible, setLogVisible] = useState(false);
+  const [logContent, setLogContent] = useState("");
 
   const startProcess = async () => {
     try {
@@ -30,61 +32,74 @@ function App() {
       setStatus(data);
       if (data.status === "done" || data.status === "error") {
         clearInterval(window.poller);
+        clearInterval(window.logPoller);
       }
     } catch (err) {
       console.log("Status file not found. Stopping polling.");
       clearInterval(window.poller);
+      clearInterval(window.logPoller);
     }
   };
 
-const downloadCSV = async () => {
-  if (!status?.output_file) return;
-  try {
-    setDownloading(true);
-    const response = await axios.get(
-      `https://bde-project.onrender.com/download/${status.output_file}`,
-      {
-        responseType: "blob",
-      }
-    );
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", status.output_file);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const pollLog = async () => {
+    try {
+      const response = await axios.get("https://bde-project.onrender.com/log");
+      setLogContent(response.data);
+    } catch (err) {
+      setLogContent("Log could not be loaded.");
+    }
+  };
 
-    // Delay cleanup by 5 seconds
-    setTimeout(async () => {
-      try {
-        await axios.post(
-          `https://bde-project.onrender.com/cleanup/${processId}`
-        );
-      } catch (err) {
-        console.error("Cleanup failed:", err);
-      }
-    }, 5000);
+  const downloadCSV = async () => {
+    if (!status?.output_file) return;
+    try {
+      setDownloading(true);
+      const response = await axios.get(
+        `https://bde-project.onrender.com/download/${status.output_file}`,
+        {
+          responseType: "blob",
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", status.output_file);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-    setDownloading(false);
-  } catch (err) {
-    setDownloading(false);
-    alert("Download failed or file not available.");
-  }
-};
+      setTimeout(async () => {
+        try {
+          await axios.post(
+            `https://bde-project.onrender.com/cleanup/${processId}`
+          );
+        } catch (err) {
+          console.error("Cleanup failed:", err);
+        }
+      }, 5000);
 
+      setDownloading(false);
+    } catch (err) {
+      setDownloading(false);
+      alert("Download failed or file not available.");
+    }
+  };
 
   useEffect(() => {
     if (processId) {
       window.poller = setInterval(() => pollStatus(processId), 3000);
+      window.logPoller = setInterval(() => pollLog(), 3000);
     }
-    return () => clearInterval(window.poller);
+    return () => {
+      clearInterval(window.poller);
+      clearInterval(window.logPoller);
+    };
   }, [processId]);
 
   return (
     <div className="p-6 max-w-xl mx-auto font-sans text-white">
       <h1 className="text-2xl font-bold mb-4 text-center text-cyan-400 uppercase tracking-wide">
-        Better Day Energy Parser
+        BDE Petroleum Pricing Parser
       </h1>
 
       <div className="mb-4">
@@ -113,40 +128,41 @@ const downloadCSV = async () => {
 
       {status && (
         <div className="mb-4 p-4 bg-gray-800 rounded">
-          <p>
-            <strong>Status:</strong> {status.status}
-          </p>
-          <p>
-            <strong>Emails Fetched:</strong> {status.email_count}
-          </p>
-          <p>
-            <strong>Current Email:</strong> {status.current_email}
-          </p>
-          <p>
-            <strong>Rows Parsed:</strong> {status.row_count}
-          </p>
-          <p>
-            <strong>Output:</strong> {status.output_file || "(none)"}
-          </p>
+          <p><strong>Status:</strong> {status.status}</p>
+          <p><strong>Emails Fetched:</strong> {status.email_count}</p>
+          <p><strong>Current Email:</strong> {status.current_email}</p>
+          <p><strong>Rows Parsed:</strong> {status.row_count}</p>
+          <p><strong>Output:</strong> {status.output_file || "(none)"}</p>
         </div>
       )}
 
-      {status?.status === "done" &&
-        status?.output_file &&
-        status?.row_count > 0 && (
-          <button
-            onClick={downloadCSV}
-            className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
-            disabled={downloading}
-          >
-            {downloading ? "Downloading..." : "Download CSV"}
-          </button>
-        )}
+      {status?.status === "done" && status?.output_file && status?.row_count > 0 && (
+        <button
+          onClick={downloadCSV}
+          className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
+          disabled={downloading}
+        >
+          {downloading ? "Downloading..." : "Download CSV"}
+        </button>
+      )}
 
       {status?.status === "done" && status?.row_count === 0 && (
         <div className="text-red-400 font-semibold">
           No rows parsed. Check logs or try different emails.
         </div>
+      )}
+
+      <button
+        className="mt-6 mb-2 underline text-cyan-400 hover:text-cyan-200 text-sm"
+        onClick={() => setLogVisible(!logVisible)}
+      >
+        {logVisible ? "Hide Log Output" : "Show Log Output"}
+      </button>
+
+      {logVisible && (
+        <pre className="bg-black p-4 rounded text-green-400 max-h-80 overflow-auto text-xs border border-cyan-700">
+          {logContent || "Loading log..."}
+        </pre>
       )}
     </div>
   );
