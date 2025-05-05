@@ -85,7 +85,6 @@ function App() {
     }
   };
 
-#touch
 
   useEffect(() => {
     if (processId) {
