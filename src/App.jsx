@@ -43,7 +43,7 @@ function App() {
 
   const pollLog = async () => {
     try {
-      const response = await axios.get("https://bde-project.onrender.com/log");
+      const response = await axios.get(`https://bde-project.onrender.com/log/${status.debug_log}`);
       setLogContent(response.data);
     } catch (err) {
       setLogContent("Log could not be loaded.");
