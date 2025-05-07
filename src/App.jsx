@@ -6,6 +6,7 @@ function App() {
   const [processId, setProcessId] = useState(null);
   const [status, setStatus] = useState(null);
   const [selectedModel, setSelectedModel] = useState("grok-3");
+  const [downloading, setDownloading] = useState(false);
 
   const startProcess = async () => {
     try {
@@ -39,6 +40,35 @@ function App() {
     }, 3000);
   };
 
+  const downloadCSV = async () => {
+    if (!status?.output_file) return;
+    setDownloading(true);
+    try {
+      const response = await axios.get(
+        `https://bde-project.onrender.com/download/${status.output_file}`,
+        { responseType: "blob" }
+      );
+
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = status.output_file;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      // Optional: Cleanup the backend status
+      await axios.post(
+        `https://bde-project.onrender.com/cleanup/${processId}`
+      );
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Failed to download CSV. Please check logs.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-start p-6 space-y-6">
       <h1 className="text-3xl font-bold text-cyan-400 mb-2">
@@ -65,7 +95,34 @@ function App() {
           Fetch & Parse
         </button>
       </div>
-        {processId && <LiveLogViewer processId={processId} />}
+
+      {status && (
+        <div className="mb-4 p-4 bg-gray-800 rounded border border-cyan-500 w-full max-w-2xl">
+          <p><strong>Status:</strong> {status.status}</p>
+          <p><strong>Emails Fetched:</strong> {status.email_count}</p>
+          <p><strong>Current Email:</strong> {status.current_email}</p>
+          <p><strong>Rows Parsed:</strong> {status.row_count}</p>
+          <p><strong>Output:</strong> {status.output_file || "(none)"}</p>
+        </div>
+      )}
+
+      {status?.status === "complete" && status?.row_count > 0 && (
+        <button
+          onClick={downloadCSV}
+          className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
+          disabled={downloading}
+        >
+          {downloading ? "Downloading..." : "Download CSV"}
+        </button>
+      )}
+
+      {status?.status === "complete" && status?.row_count === 0 && (
+        <div className="text-red-400 font-semibold">
+          No rows parsed. Check logs or try different emails.
+        </div>
+      )}
+
+      {processId && <LiveLogViewer processId={processId} />}
     </div>
   );
 }
