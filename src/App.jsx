@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import StatusViewer from "./components/StatusViewer";
-import LiveLogViewer from "./components/LiveLogViewer";
+import LiveLogViewer from "./components/LogViewer";
 
 function App() {
   const [processId, setProcessId] = useState(null);
