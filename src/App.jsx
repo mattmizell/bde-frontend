@@ -65,9 +65,7 @@ function App() {
           Fetch & Parse
         </button>
       </div>
-
-      {status && <StatusViewer status={status} />}
-      {processId && <LiveLogViewer processId={processId} />}
+        {processId && <LiveLogViewer processId={processId} />}
     </div>
   );
 }
